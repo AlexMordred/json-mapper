@@ -1,0 +1,24 @@
+version: "3.4"
+services:
+  app:
+    build:
+      args:
+        user: azavyalov-json-mapper-owner
+        uid: 1000
+      context: ./
+      dockerfile: ./Dockerfile
+      network: host
+    image: azavyalov-json-mapper
+    container_name: azavyalov-json-mapper-app
+    restart: unless-stopped
+    working_dir: /var/www/html/
+    volumes:
+      - ./:/var/www/html
+    networks:
+      - azavyalov-json-mapper
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  azavyalov-json-mapper:
+    driver: bridge

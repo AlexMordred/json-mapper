@@ -1,0 +1,24 @@
+{
+    "name": "azavyalov/json-mapper",
+    "type": "library",
+    "version": "0.1.0",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Azavyalov\\JsonMapper\\": "src/",
+            "Azavyalov\\JsonMapper\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Alexander Zavyalov"
+        }
+    ],
+    "require": {
+        "php": "^8.3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.3",
+        "phpstan/phpstan": "^2.1"
+    }
+}

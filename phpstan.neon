@@ -1,0 +1,12 @@
+parameters:
+    phpVersion: 80400 # PHP 8.4
+    level: 6
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - tests/*
+    exceptions:
+        check:
+            missingCheckedExceptionInThrows: true
+            tooWideThrowType: true
