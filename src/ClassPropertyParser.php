@@ -63,7 +63,10 @@ final class ClassPropertyParser
 
         $docblock = $reflectionClass->getConstructor()->getDocComment() ?: null;
 
-        return $this->parseArrayTypesFromDocblock($docblock);
+        return $this->parseArrayTypesFromDocblock(
+            $docblock,
+            $reflectionClass->getNamespaceName()
+        );
     }
 
     /**
@@ -77,13 +80,19 @@ final class ClassPropertyParser
 
         $docblock = $reflectionClass->getConstructor()->getDocComment() ?: null;
 
-        return $this->parseMapTypesFromDocblock($docblock);
+        return $this->parseMapTypesFromDocblock(
+            $docblock,
+            $reflectionClass->getNamespaceName(),
+        );
     }
 
     /**
      * @return array<string, string>
      */
-    private function parseArrayTypesFromDocblock(string|null $docblock): array
+    private function parseArrayTypesFromDocblock(
+        string|null $docblock,
+        string $classNamespace,
+    ): array
     {
         if (!$docblock) {
             return [];
@@ -111,6 +120,8 @@ final class ClassPropertyParser
 
             [$_, $type, $propertyName] = $splitResult;
 
+            $type = $this->expandClassNameToFullPath($type, $classNamespace);
+
             $arrayTypes[$propertyName] = $type;
         }
 
@@ -120,7 +131,10 @@ final class ClassPropertyParser
     /**
      * @return array<string, MapType>
      */
-    private function parseMapTypesFromDocblock(string|null $docblock): array
+    private function parseMapTypesFromDocblock(
+        string|null $docblock,
+        string $classNamespace,
+    ): array
     {
         if ($docblock === null) {
             return [];
@@ -151,11 +165,6 @@ final class ClassPropertyParser
             $keyType = $mapTypesMatches[1][0] ?? null;
             $valueType = $mapTypesMatches[2][0] ?? null;
 
-            if ($valueType !== null) {
-                // Trim the backward slashes in case a class-string starts with '\'
-                $valueType = trim($valueType, '\\');
-            }
-
             $valueIsNullable = false;
 
             if (str_starts_with($valueType, '?')) {
@@ -167,6 +176,16 @@ final class ClassPropertyParser
                 $valueType = str_replace('null|', '', $valueType);
             }
 
+            $valueType = $this->expandClassNameToFullPath(
+                $valueType,
+                $classNamespace,
+            );
+
+            if ($valueType !== null) {
+                // Trim the backward slashes in case a class-string starts with '\'
+                $valueType = trim($valueType, '\\');
+            }
+
             $mapTypes[$propertyName] = new MapType(
                 keyType: $keyType,
                 valueType: $valueType,
@@ -176,6 +195,27 @@ final class ClassPropertyParser
         }
 
         return $mapTypes;
+    }
+
+    private function expandClassNameToFullPath(
+        ?string $classNameOrType,
+        string $namespace
+    ): ?string
+    {
+        if ($classNameOrType === null) {
+            return null;
+        }
+
+        if ($this->isTypeBuiltin($classNameOrType)) {
+            return $classNameOrType;
+        }
+
+        // Class names starting with '\' are full paths already
+        if (str_starts_with($classNameOrType, '\\')) {
+            return $classNameOrType;
+        }
+
+        return "{$namespace}\\{$classNameOrType}";
     }
 
     private function removeNullsFromDocblock(string $dockblock): string

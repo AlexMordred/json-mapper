@@ -29,6 +29,8 @@ use Azavyalov\JsonMapper\Tests\Types\NullableStringArray;
 use Azavyalov\JsonMapper\Tests\Types\NullableStringField;
 use Azavyalov\JsonMapper\Tests\Types\NullField;
 use Azavyalov\JsonMapper\Tests\Types\ObjectField;
+use Azavyalov\JsonMapper\Tests\Types\RelativeCustomTypeArray;
+use Azavyalov\JsonMapper\Tests\Types\RelativeCustomTypeMap;
 use Azavyalov\JsonMapper\Tests\Types\SelfField;
 use Azavyalov\JsonMapper\Tests\Types\StringAndNullUnionField;
 use Azavyalov\JsonMapper\Tests\Types\StringArray;
@@ -621,5 +623,55 @@ class ClassPropertyParserTest extends TestCase
         );
 
         $this->assertParsedCorrectly(StringToNullableIntMap2::class, $expected);
+    }
+
+    public function test_allow_relative_class_string_as_array_element_types(): void
+    {
+        $expected = new ClassProperty(
+            class: RelativeCustomTypeArray::class,
+            name: 'items',
+            isArray: true,
+            isMap: false,
+            isUnionType: false,
+            isIntersectionType: false,
+            mainType: new MainType(
+                type: 'array',
+                isBuiltin: true,
+                isNullable: false,
+            ),
+            arrayType: new ArrayType(
+                elementType: CustomTypeArrayChild::class,
+                isElementTypeBuiltin: false,
+            ),
+            mapType: null,
+        );
+
+        $this->assertParsedCorrectly(RelativeCustomTypeArray::class, $expected);
+    }
+
+    public function test_allow_relative_class_string_as_map_value_types(): void
+    {
+        $expected = new ClassProperty(
+            class: RelativeCustomTypeMap::class,
+            name: 'items',
+            isArray: true,
+            isMap: true,
+            isUnionType: false,
+            isIntersectionType: false,
+            mainType: new MainType(
+                type: 'array',
+                isBuiltin: true,
+                isNullable: false,
+            ),
+            arrayType: null,
+            mapType: new MapType(
+                keyType: 'string',
+                valueType: ChildClass::class,
+                isValueTypeBuiltin: false,
+                isValueNullable: false,
+            ),
+        );
+
+        $this->assertParsedCorrectly(RelativeCustomTypeMap::class, $expected);
     }
 }
