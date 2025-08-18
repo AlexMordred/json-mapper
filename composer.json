@@ -1,7 +1,7 @@
 {
     "name": "azavyalov/json-mapper",
     "type": "library",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "license": "MIT",
     "autoload": {
         "psr-4": {

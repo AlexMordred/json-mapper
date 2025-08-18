@@ -23,10 +23,15 @@ final class JsonMapper
 {
     private ClassPropertyParser $classPropertyParser;
     private bool $allowUntypedProperties = false;
+    private bool $allowIntToFloatConversion = false;
 
-    public function __construct(bool $allowUntypedProperties = false)
+    public function __construct(
+        bool $allowUntypedProperties = false,
+        bool $allowIntToFloatConversion = false,
+    )
     {
         $this->allowUntypedProperties = $allowUntypedProperties;
+        $this->allowIntToFloatConversion = $allowIntToFloatConversion;
 
         $this->classPropertyParser = new ClassPropertyParser();
     }
@@ -483,21 +488,41 @@ final class JsonMapper
     }
 
     /**
-     * @param array<string|int, mixed> $elements
+     * @param array<string|int, mixed> $values
      * @return array<string|int, mixed>
      *
      * @throws \Azavyalov\JsonMapper\Exceptions\InvalidMapValueTypeException
      */
     private function mapBuiltinTypeMapValues(
         ClassProperty $property,
-        array $elements,
+        array $values,
     ): array
     {
-        foreach ($elements as $element) {
-            $this->validateBuiltinTypeMapValue($property, $element);
+        $processedValues = [];
+
+        foreach ($values as $key => $value) {
+            $this->validateBuiltinTypeMapValue($property, $value);
+
+            $processedValues[$key] = $this
+                ->mapBuiltinTypeMapValue($property, $value);
         }
 
-        return $elements;
+        return $processedValues;
+    }
+
+    private function mapBuiltinTypeMapValue(
+        ClassProperty $property,
+        mixed $value,
+    ): mixed
+    {
+        if (
+            $property->mapType->valueType === 'float'
+            && $this->allowIntToFloatConversion
+        ) {
+            return floatval($value);
+        }
+
+        return $value;
     }
 
     /**
@@ -585,11 +610,31 @@ final class JsonMapper
         array $elements,
     ): array
     {
+        $processedElements = [];
+
         foreach ($elements as $element) {
             $this->validateBuiltinTypeArrayElement($property, $element);
+
+            $processedElements[] = $this
+                ->mapBuiltinTypeArrayElement($property, $element);
         }
 
-        return $elements;
+        return $processedElements;
+    }
+
+    private function mapBuiltinTypeArrayElement(
+        ClassProperty $property,
+        mixed $element,
+    ): mixed
+    {
+        if (
+            $property->arrayType->elementType === 'float'
+            && $this->allowIntToFloatConversion
+        ) {
+            return floatval($element);
+        }
+
+        return $element;
     }
 
     /**
@@ -664,7 +709,9 @@ final class JsonMapper
     {
         $actualType = $this->getJsonValueType($value);
 
-        if ($actualType === 'null' && $propertyIsNullable) {
+        if ($expectedType === 'float' && $actualType === 'int' && $this->allowIntToFloatConversion) {
+            // all good
+        } elseif ($actualType === 'null' && $propertyIsNullable) {
             // all good
         } elseif ($actualType === 'null') {
             throw new NullNotAllowedException($className, $propertyName);

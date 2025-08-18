@@ -32,20 +32,20 @@ final class SomeClass
      * @param array<string, bool> $stringToBoolMap
      */
     public function __construct(
-        public string $stringField,  // Property names should correspond to JSON field names
-        public int $intField,
-        public float $floatField,
-        public bool $boolField,
-        public ?int $nullableField,
-        public ?int $missingNullableField,  // A nullable property will be set to `null` if the field is missing in the JSON
-        public int $missingNonNullableField,  // If a non-nullable property is missing in the JSON - an exception will be thrown
-        public array $stringArray,
-        public array $intArray,
-        public array $floatArray,
-        public array $boolArray,
-        public array $customTypeArray,
-        public array $stringToBoolMap,
-        public NestedObjectClass $nestedObject, // The depth of nested objects is not limited
+        public readonly string $stringField,  // Property names should correspond to JSON field names
+        public readonly int $intField,
+        public readonly float $floatField,
+        public readonly bool $boolField,
+        public readonly ?int $nullableField,
+        public readonly ?int $missingNullableField,  // A nullable property will be set to `null` if the field is missing in the JSON
+        public readonly int $missingNonNullableField,  // If a non-nullable property is missing in the JSON - an exception will be thrown
+        public readonly array $stringArray,
+        public readonly array $intArray,
+        public readonly array $floatArray,
+        public readonly array $boolArray,
+        public readonly array $customTypeArray,
+        public readonly array $stringToBoolMap,
+        public readonly NestedObjectClass $nestedObject, // The depth of nested objects is not limited
     ) {}
 }
 
@@ -109,35 +109,37 @@ print_r($result);
 
 ```
 
-### On Strictness
-
-Initially I was not going to implement maps and allow untyped properties - both kind of defy the core idea of this project. However, we live in an imperfect world :) We have to deal with 3rd party data or APIs which we have no control over. A JSON object can have a key named `'1-2'` but PHP doesn't allow class properties and variables to be named like that - `$1-2`. I do incourage you to use nested objects instead of maps wherever the JSON keys allow you to.
-
-Untyped properties are not allowed by default and should be an absolute last resort. Having an object with untyped properties is better than having raw PHP arrays, depending on your usage, but won't bring you the full benifits of this package. To enable untyped properties instantiating the mapper like this: `$mapper = new JsonMapper(allowUntypedProperties: true);`. This option is turned off by default.
-
 ### The Rules
 
-This mapper is strict. Implicit conversions are not allowed, e.g. passing a `'0`' instead of `0` to an int field would result in an exception. Each class property has to have a type specified, which could be either a builtin PHP type or another class (nested objects). Properties can be nullable. Union and `mixed` types are not allowed.
+This mapper is mostly strict with a few optional exceptions (see the following sections). Implicit conversions are not allowed, e.g. passing a `'0`' instead of `0` to an int field would result in an exception. Each class property has to have a type specified, which could be either a builtin PHP type or another class (nested objects). Properties can be nullable. Union and `mixed` types are not allowed.
 
 Each array has to have its element type specified in the DocBlock in the `[]` format, e.g. `@param string[] $myArrayField`. Array elements could also be another class objects, e.g. `@param ArrayElementClass[] $myArrayField`.
 
-If each element in an array is of the same type and cannot be null - you want a typed array, e.g. `string[]`. If elements of an array are of a different type - you want a nested object (another class with typed properties).
+If each element in an array is of the same type and cannot be null - you want a typed array, e.g. `string[]`. If elements of an array are of different types - you want a nested object (another class with typed properties). Sometimes objects will have peculiar key names that cannot be converted into PHP variable names, in which case your only option would be to use a map, e.g. `array<string, int>`.
 
 A proeprty described in the class must be present in the JSON unless the property is marked as nullable. Properties not described in the class but present in the JSON will be simply ignored.
 
-By default, each property has to have a type. You can enable untyped properties instantiating the mapper like this: `$mapper = new JsonMapper(allowUntypedProperties: true);`. This is discouraged.
+By default, each property has to have a type.
 
-### Array type declarations
+### Options
+
+- `allowIntToFloatConversion`, e.g. `$mapper = new JsonMapper(allowIntToFloatConversion: true)s` (turned off by default).
+    - `int` values will be converted into `float` values when mapped into float type properties. When this option is off, passing an `int` value to a `float` class property would result in an exception.
+    - This option is needed because JSON doesn't distinguish between `int` and `float`, there's only a single `number` type. Many languages would convert round float numbers like `5.0` into `5` when producing JSON.
+- `allowUntypedProperties`, e.g. `$mapper = new JsonMapper(allowUntypedProperties: true);` (turned off by default).
+    - Use of this option is discouraged and is meant to be used as a last resort.
+
+### Array Type Declarations
 
 The type of PHP arrays has to be specified in the class' constructor's DocBlock. For arrays use the `[]` format and for maps use the `array<>` format with both key and value types specified.
 
 What's the difference between an array and a map?
 
-In PHP, an "array" is not an actual array and is more like a representation of a loose JSON object and not an actual array. An actual array (as seen in stritcly typed programming languages) is a sequence of values of the same type. The keys of an array are subsequential numbers starting from 0 (0 -> 1 -> 2 -> 3 -> ...).
+In PHP, an "array" is not an actual array and is more like a representation of a loose JSON object. An actual array (as seen in stritcly typed programming languages) is a sequence of values of the same type. The keys of an array are subsequential numbers starting from 0 (0 -> 1 -> 2 -> 3 -> ...).
 
 A map is a collection of key-value pairs. With maps your keys could be both numbers and strings, and values could be whichiver type just like in an array. This package allows the keys to be either `int` or `string`, but not both (`int|string` is not allowed). All the values should be of the same type.
 
-```
+```php
 final class SomeClass
 {
     /**
@@ -147,10 +149,10 @@ final class SomeClass
      * @param array<int, CustomObjectClass> $intToCustomObjectMap
      */
     public function __construct(
-        public array $arrayOfStrings,
-        public array $arrayOfCustomObjects,
-        public array $stringToIntMap,
-        public array $intToCustomObjectMap,
+        public readonly array $arrayOfStrings,
+        public readonly array $arrayOfCustomObjects,
+        public readonly array $stringToIntMap,
+        public readonly array $intToCustomObjectMap,
     ) {}
 }
 ```

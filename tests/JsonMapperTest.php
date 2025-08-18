@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Azavyalov\JsonMapper\Tests;
 
 use Azavyalov\JsonMapper\Exceptions\ArrayTypeMissingException;
@@ -46,6 +48,7 @@ use Azavyalov\JsonMapper\Tests\Types\ParentClass;
 use Azavyalov\JsonMapper\Tests\Types\PartiallyTypedObject;
 use Azavyalov\JsonMapper\Tests\Types\StringArray;
 use Azavyalov\JsonMapper\Tests\Types\StringField;
+use Azavyalov\JsonMapper\Tests\Types\StringToFloatMap;
 use Azavyalov\JsonMapper\Tests\Types\StringToNullableIntMap;
 use Azavyalov\JsonMapper\Tests\Types\UnionTypeField;
 use Azavyalov\JsonMapper\Tests\Types\UntypedArray;
@@ -890,5 +893,47 @@ class JsonMapperTest extends TestCase
 
             $this->fail("Expected InvalidTypeException, found {$actualExceptionClass} instead ({$e->getMessage()}).");
         }
+    }
+
+    public function test_int_values_will_be_converted_to_float_when_the_option_is_enabled(): void
+    {
+        $mapper = new JsonMapper(allowIntToFloatConversion: true);
+
+        $json = ['field' => 5];
+
+        $result = $mapper->map($json, FloatField::class);
+
+        $this->assertSame(5.0, $result->field);
+    }
+
+    public function test_int_array_elements_will_be_converted_to_float_when_the_option_is_enabled(): void
+    {
+        $mapper = new JsonMapper(allowIntToFloatConversion: true);
+
+        $json = [
+            'items' => [555, 666],
+        ];
+
+        $result = $mapper->map($json, FloatArray::class);
+
+        $this->assertSame(555.0, $result->items[0]);
+        $this->assertSame(666.0, $result->items[1]);
+    }
+
+    public function test_int_map_values_will_be_converted_to_float_when_the_option_is_enabled(): void
+    {
+        $mapper = new JsonMapper(allowIntToFloatConversion: true);
+
+        $json = [
+            'items' => [
+                'keyOne' => 555,
+                'keyTwo' => 666,
+            ],
+        ];
+
+        $result = $mapper->map($json, StringToFloatMap::class);
+
+        $this->assertSame(555.0, $result->items['keyOne']);
+        $this->assertSame(666.0, $result->items['keyTwo']);
     }
 }
